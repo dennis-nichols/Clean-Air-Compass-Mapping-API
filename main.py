@@ -1,6 +1,3 @@
-from pydantic import BaseModel
-from typing import List, Dict, Optional
-from shapely.geometry import GeometryCollection, Point
 from fastapi import FastAPI
 from utils.sensor_map_helpers import request_location_api, get_sensors_bbox_response, parse_sensors_bbox_response, convert_to_utm_crs
 

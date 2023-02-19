@@ -1,7 +1,6 @@
 import pandas as pd
 import geopandas as gpd
 import requests
-import time
 import json
 from dotenv import load_dotenv
 import os
