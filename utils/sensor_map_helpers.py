@@ -1,6 +1,7 @@
 import pandas as pd
 import geopandas as gpd
 import requests
+import time
 import json
 from dotenv import load_dotenv
 import os
@@ -73,11 +74,11 @@ def get_sensors_bbox_response(nwlong: float, nwlat: float, selong: float, selat:
     }
 
     response = requests.get(url, headers=headers)
-    return response
+    return json.loads(response.text)
 
 
 def parse_sensors_bbox_response(response_object) -> gpd.GeoDataFrame:
-    data = json.loads(response_object.text)
+    data = response_object
     flat_dicts = []
     for sensor in data['data']:
         flat_dict = {

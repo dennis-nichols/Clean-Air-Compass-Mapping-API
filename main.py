@@ -15,8 +15,12 @@ async def get_map(location: str):
   # parse the response from the sensors API into a geodataframe
   geo_df = parse_sensors_bbox_response(sensors_response)
   # convert the geodataframe to an appropriate coordinate reference system based on its US location - NOTE: will need to change for international use
-  geo_df = convert_to_utm_crs(geo_df)
+  # geo_df = convert_to_utm_crs(geo_df)
   # conver the geodataframe to a geo_json object
-  geo_json = geo_df.to_json()
   
-  return geo_json
+  data = geo_df.to_json()
+  print(data)
+  
+  # data = json.dumps(geo_df.__geo_interface__)
+  
+  return data
