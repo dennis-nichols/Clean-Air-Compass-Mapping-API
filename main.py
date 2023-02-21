@@ -1,5 +1,6 @@
 from fastapi import FastAPI
-from utils.sensor_map_helpers import request_location_api, get_sensors_bbox_response, parse_sensors_bbox_response, convert_to_utm_crs
+from utils.sensor_map_helpers import request_location_api, get_sensors_bbox_response, parse_sensors_bbox_response, make_interpolated_polygons
+import json
 
 app = FastAPI()
 
@@ -14,13 +15,10 @@ async def get_map(location: str):
                                                selong = bbox['max_lon'], selat = bbox['min_lat'])
   # parse the response from the sensors API into a geodataframe
   geo_df = parse_sensors_bbox_response(sensors_response)
-  # convert the geodataframe to an appropriate coordinate reference system based on its US location - NOTE: will need to change for international use
-  # geo_df = convert_to_utm_crs(geo_df)
-  # conver the geodataframe to a geo_json object
+
+  # convert the geodataframe to a geo_json object  
+  # data = geo_df.to_json()
   
-  data = geo_df.to_json()
-  print(data)
+  response = make_interpolated_polygons(geo_df)
   
-  # data = json.dumps(geo_df.__geo_interface__)
-  
-  return data
+  return response

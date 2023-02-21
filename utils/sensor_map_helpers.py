@@ -6,11 +6,33 @@ import json
 from dotenv import load_dotenv
 import os
 import re
+from scipy.interpolate import griddata
+import numpy as np
+import functools
 
 load_dotenv()
 
 API_KEY  = os.environ.get('API_KEY')
 LOC_IQ_KEY = os.environ.get('LOC_IQ_KEY')
+
+
+def cache(func):
+    cache = {}
+    ttl = 1800  # 30 minutes in seconds
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        key = (args, tuple(sorted(kwargs.items())))
+        now = time.time()
+        if key in cache:
+            result, timestamp = cache[key]
+            if now - timestamp < ttl:
+                return result
+        result = func(*args, **kwargs)
+        cache[key] = (result, now)
+        return result
+
+    return wrapper
 
 
 def is_postal_code(query: str):
@@ -27,6 +49,7 @@ def is_postal_code(query: str):
         return False
 
 
+@cache
 def request_location_api(query: str):
 
     url = "https://us1.locationiq.com/v1/search"
@@ -61,6 +84,7 @@ def request_location_api(query: str):
     return bbox
 
 
+@cache
 def get_sensors_bbox_response(nwlong: float, nwlat: float, selong: float, selat: float):
     base_url = "https://api.purpleair.com/v1/sensors/"
     fields = 'sensor_index,name,latitude,longitude,altitude,pm1.0,pm2.5,pm10.0,pm2.5_10minute,pm2.5_30minute,pm2.5_60minute'
@@ -75,6 +99,7 @@ def get_sensors_bbox_response(nwlong: float, nwlat: float, selong: float, selat:
 
     response = requests.get(url, headers=headers)
     return json.loads(response.text)
+
 
 
 def parse_sensors_bbox_response(response_object) -> gpd.GeoDataFrame:
@@ -103,21 +128,54 @@ def parse_sensors_bbox_response(response_object) -> gpd.GeoDataFrame:
     return sensor_gdf
 
 
-def convert_to_utm_crs(df):
 
-    df.set_crs(epsg=4326, inplace=True, allow_override=True)
-    # Find centroid of the dataframe
-    centroid = df.centroid.iloc[0]
+def make_interpolated_polygons(sensor_gdf):
+    # Extract the X and Y coordinates of the sensor points
+    X = sensor_gdf["longitude"].values
+    Y = sensor_gdf["latitude"].values
 
-    # Determine UTM zone based on centroid
-    utm_zone = int((centroid.x + 180) / 6) + 1
-    if centroid.y < 0:
-        utm_zone = -utm_zone
+    # Extract the air pollution values from the sensor points
+    Z = sensor_gdf["pm2.5"].values
 
-    # Get the EPSG code for the UTM zone
-    epsg_code = f'326{utm_zone:02d}' if utm_zone > 0 else f'327{-utm_zone:02d}'
+    # Create a grid of points to interpolate the air pollution values to
+    x_min, x_max = X.min() - 0.01, X.max() + 0.01
+    y_min, y_max = Y.min() - 0.01, Y.max() + 0.01
+    grid_x, grid_y = np.mgrid[x_min:x_max:100j, y_min:y_max:100j]
 
-    # Convert the dataframe to the UTM CRS
-    df_utm = df.to_crs(epsg=epsg_code)
+    # Perform IDW interpolation using the cKDTree and griddata functions from scipy
+    interpolated_values = griddata(
+        np.column_stack((X, Y)), Z, (grid_x, grid_y), method="nearest")
 
-    return df_utm
+    # Convert the interpolated_values array into a list of polyggon features
+    features = []
+    for i in range(interpolated_values.shape[0] - 1):
+        for j in range(interpolated_values.shape[1] - 1):
+            polygon = [
+                [grid_x[i, j], grid_y[i, j]],
+                [grid_x[i + 1, j], grid_y[i + 1, j]],
+                [grid_x[i + 1, j + 1], grid_y[i + 1, j + 1]],
+                [grid_x[i, j + 1], grid_y[i, j + 1]],
+                [grid_x[i, j], grid_y[i, j]]
+            ]
+            features.append({
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [polygon]
+                },
+                "properties": {
+                    "interpolated_value": interpolated_values[i, j]
+                }
+            })
+
+    # get the center point of the dataset to assist in centering the map
+    center_point = [np.mean(X), np.mean(Y)]
+    
+    # Create a GeoJSON object that can be displayed on a React Leaflet map
+    geojson = {
+        "type": "FeatureCollection",
+        "features": features,
+        "center_point": center_point
+    }
+    
+    return geojson
