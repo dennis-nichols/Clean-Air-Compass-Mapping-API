@@ -80,12 +80,18 @@ def request_location_api(query: str):
         'min_lon': float(bounding_box[2]),
         'max_lon': float(bounding_box[3])
     }
+    if is_postal_code(query):
+        bbox['min_lat'] -= 0.05
+        bbox['max_lat'] += 0.05
+        bbox['min_lon'] -= 0.05
+        bbox['max_lat'] += 0.05
 
     return bbox
 
 
 @cache
 def get_sensors_bbox_response(nwlong: float, nwlat: float, selong: float, selat: float):
+    
     base_url = "https://api.purpleair.com/v1/sensors/"
     fields = 'sensor_index,name,latitude,longitude,altitude,pm1.0,pm2.5,pm10.0,pm2.5_10minute,pm2.5_30minute,pm2.5_60minute'
     query = f'?fields={fields}&location_type=0'
