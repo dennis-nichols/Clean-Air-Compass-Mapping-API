@@ -134,7 +134,6 @@ def parse_sensors_bbox_response(response_object) -> gpd.GeoDataFrame:
     return sensor_gdf
 
 
-
 def make_interpolated_polygons(sensor_gdf):
     # Extract the X and Y coordinates of the sensor points
     X = sensor_gdf["longitude"].values
@@ -177,11 +176,18 @@ def make_interpolated_polygons(sensor_gdf):
     # get the center point of the dataset to assist in centering the map
     center_point = [np.mean(X), np.mean(Y)]
     
+    # also make the geojson object for just the sensor points so those can be returned back too
+    
+    points = json.loads(sensor_gdf.to_json())
+    points_features = points['features']
+
     # Create a GeoJSON object that can be displayed on a React Leaflet map
     geojson = {
         "type": "FeatureCollection",
         "features": features,
+        "points": points_features,
         "center_point": center_point
+        
     }
     
     return geojson
