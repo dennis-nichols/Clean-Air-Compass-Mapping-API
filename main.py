@@ -33,7 +33,7 @@ async def get_average_pollution(location: str):
   
   # call location IQ API to get bounding box for location
   bbox, valid_response = request_location_api(location)
-  
+
   if valid_response:
     # call the purple API to get data for sensors within the bbox
     sensors_response = get_sensors_bbox_response(nwlong = bbox['min_lon'], nwlat = bbox['max_lat'], 
@@ -42,4 +42,7 @@ async def get_average_pollution(location: str):
     # parse the response from the sensors API into a geodataframe
     geo_df = parse_sensors_bbox_response(sensors_response)
   
-  return geo_df['pm2.5_60minute'].mean()
+    return geo_df['pm2.5_60minute'].mean()
+  
+  else:
+    return bbox
