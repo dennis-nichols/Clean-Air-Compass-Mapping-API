@@ -73,21 +73,29 @@ def request_location_api(query: str):
     }
     response = requests.get(url, params=data, headers=headers)
     data = json.loads(response.text)
-    bounding_box = data[0]['boundingbox']
-    bbox = {
-        'min_lat': float(bounding_box[0]),
-        'max_lat': float(bounding_box[1]),
-        'min_lon': float(bounding_box[2]),
-        'max_lon': float(bounding_box[3])
-    }
-    if is_postal_code(query):
-        bbox['min_lat'] -= 0.05
-        bbox['max_lat'] += 0.05
-        bbox['min_lon'] -= 0.05
-        bbox['max_lat'] += 0.05
+    
+    if data != {'error': 'Unable to geocode'}:
+        bounding_box = data[0]['boundingbox']
+        bbox = {
+            'min_lat' : float(bounding_box[0]),
+            'max_lat' : float(bounding_box[1]),
+            'min_lon' : float(bounding_box[2]),
+            'max_lon' : float(bounding_box[3])
+        }
+        if is_postal_code(query):
+            bbox['min_lat'] -= 0.05
+            bbox['max_lat'] += 0.05
+            bbox['min_lon'] -= 0.05
+            bbox['max_lat'] += 0.05
+            
+        valid_response = True
+    
+    else:
+        data = {"message":"Please verify that you searched for a location in the United States."}
+        valid_response = False
+        return data, valid_response
 
-    return bbox
-
+    return bbox, valid_response
 
 @cache
 def get_sensors_bbox_response(nwlong: float, nwlat: float, selong: float, selat: float):
