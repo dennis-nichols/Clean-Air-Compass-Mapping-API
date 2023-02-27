@@ -65,8 +65,7 @@ def request_location_api(query: str):
         data = {
             'key': LOC_IQ_KEY,
             'q': query,
-            'format': 'json',
-            'countrycodes': 'us'
+            'format': 'json'
         }
     headers = {
         'Referer': 'https://www.kaggle.com/'
