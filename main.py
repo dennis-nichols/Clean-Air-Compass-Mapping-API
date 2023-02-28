@@ -51,7 +51,7 @@ async def get_map(location: str):
         
         return json.loads(json.dumps({"message":"No sensors available in that location, please try another.", "bbox": bbox, "bbox_polygon": bbox_polygon}))
   
-
+    expanded_search = False
     # parse the response from the sensors API into a geodataframe
     geo_df = parse_sensors_bbox_response(sensors_response)
     
