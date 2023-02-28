@@ -20,6 +20,7 @@ async def get_map(location: str):
     # if at first there are no sensors try to expand the bounding box
     
     if len(sensors_response['data']) < 1:
+      expanded_search = True
       ctr = 1
       while ctr < 4:
         bbox, valid_response = request_location_api(location, factor=ctr)
@@ -55,7 +56,7 @@ async def get_map(location: str):
     geo_df = parse_sensors_bbox_response(sensors_response)
     
     # perform interpolation and return a grid of polygons with interpolated pm2.5 values
-    response = make_interpolated_polygons(geo_df)
+    response = make_interpolated_polygons(geo_df, expanded_search=expanded_search)
     
     return response
   else:

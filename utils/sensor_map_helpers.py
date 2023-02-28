@@ -147,7 +147,7 @@ def parse_sensors_bbox_response(response_object) -> gpd.GeoDataFrame:
     return sensor_gdf
 
 
-def make_interpolated_polygons(sensor_gdf):
+def make_interpolated_polygons(sensor_gdf, expanded_search: bool = False):
     # Extract the X and Y coordinates of the sensor points
     X = sensor_gdf["longitude"].values
     Y = sensor_gdf["latitude"].values
@@ -199,7 +199,8 @@ def make_interpolated_polygons(sensor_gdf):
         "type": "FeatureCollection",
         "features": features,
         "points": points_features,
-        "center_point": center_point
+        "center_point": center_point,
+        "expanded_search": expanded_search
         
     }
     
