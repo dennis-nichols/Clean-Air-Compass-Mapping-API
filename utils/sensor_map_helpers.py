@@ -50,7 +50,7 @@ def is_postal_code(query: str):
 
 
 @cache
-def request_location_api(query: str):
+def request_location_api(query: str, factor: int = 0):
 
     url = "https://us1.locationiq.com/v1/search"
     if is_postal_code(query):
@@ -81,11 +81,17 @@ def request_location_api(query: str):
             'min_lon' : float(bounding_box[2]),
             'max_lon' : float(bounding_box[3])
         }
+        
+        bbox['min_lat'] -= (0.05 * 2**factor)
+        bbox['max_lat'] += (0.05 * 2**factor)
+        bbox['min_lon'] -= (0.05 * 2**factor)
+        bbox['max_lon'] += (0.05 * 2**factor)
+            
         if is_postal_code(query):
-            bbox['min_lat'] -= 0.05
-            bbox['max_lat'] += 0.05
-            bbox['min_lon'] -= 0.05
-            bbox['max_lat'] += 0.05
+            bbox['min_lat'] -= 0.1
+            bbox['max_lat'] += 0.1
+            bbox['min_lon'] -= 0.1
+            bbox['max_lon'] += 0.1
             
         valid_response = True
     
