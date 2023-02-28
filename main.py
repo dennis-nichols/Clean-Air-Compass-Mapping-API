@@ -16,6 +16,40 @@ async def get_map(location: str):
     # call the purple API to get data for sensors within the bbox
     sensors_response = get_sensors_bbox_response(nwlong = bbox['min_lon'], nwlat = bbox['max_lat'], 
                                                 selong = bbox['max_lon'], selat = bbox['min_lat'])
+    
+    # if at first there are no sensors try to expand the bounding box
+    
+    if len(sensors_response['data']) < 1:
+      ctr = 1
+      while ctr < 4:
+        bbox, valid_response = request_location_api(location, factor=ctr)
+        sensors_response = get_sensors_bbox_response(nwlong = bbox['min_lon'], nwlat = bbox['max_lat'], 
+                                                selong = bbox['max_lon'], selat = bbox['min_lat'])
+        
+        print('Expanding search')
+        print(bbox)
+        
+        if len(sensors_response['data']) > 1:
+          break
+        ctr += 1
+      
+      if len(sensors_response['data']) < 1:
+        bbox_polygon = {
+          "type": "Feature",
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [[[bbox['min_lon'], bbox['min_lat']],
+                [bbox['min_lon'], bbox['max_lat']],
+                [bbox['max_lon'], bbox['max_lat']],
+                [bbox['max_lon'], bbox['min_lat']],
+                [bbox['min_lon'], bbox['min_lat']]
+              ]
+            ]
+          }
+        }
+        
+        return json.loads(json.dumps({"message":"No sensors available in that location, please try another.", "bbox": bbox, "bbox_polygon": bbox_polygon}))
+  
 
     # parse the response from the sensors API into a geodataframe
     geo_df = parse_sensors_bbox_response(sensors_response)
