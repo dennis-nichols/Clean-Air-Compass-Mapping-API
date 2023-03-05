@@ -22,7 +22,7 @@ async def get_map(location: str):
     if len(sensors_response['data']) < 1:
       expanded_search = True
       ctr = 1
-      while ctr < 4:
+      while ctr < 3:
         bbox, valid_response = request_location_api(location, factor=ctr)
         sensors_response = get_sensors_bbox_response(nwlong = bbox['min_lon'], nwlat = bbox['max_lat'], 
                                                 selong = bbox['max_lon'], selat = bbox['min_lat'])
@@ -50,8 +50,8 @@ async def get_map(location: str):
         }
         
         return json.loads(json.dumps({"message":"No sensors available in that location, please try another.", "bbox": bbox, "bbox_polygon": bbox_polygon}))
-  
-    expanded_search = False
+    else:
+     expanded_search = False
     # parse the response from the sensors API into a geodataframe
     geo_df = parse_sensors_bbox_response(sensors_response)
     
