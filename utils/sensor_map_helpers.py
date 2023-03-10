@@ -6,6 +6,7 @@ import json
 from dotenv import load_dotenv
 import os
 import re
+from sklearn.neighbors import KNeighborsRegressor
 from scipy.interpolate import griddata
 import numpy as np
 import functools
@@ -147,47 +148,55 @@ def parse_sensors_bbox_response(response_object) -> gpd.GeoDataFrame:
     return sensor_gdf
 
 
+
+
 def make_interpolated_polygons(sensor_gdf, expanded_search: bool = False):
     # Extract the X and Y coordinates of the sensor points
-    X = sensor_gdf["longitude"].values
-    Y = sensor_gdf["latitude"].values
-
-    # Extract the air pollution values from the sensor points
+    X = sensor_gdf[["longitude", "latitude"]].values
     Z = sensor_gdf["pm2.5"].values
 
     # Create a grid of points to interpolate the air pollution values to
-    x_min, x_max = X.min() - 0.01, X.max() + 0.01
-    y_min, y_max = Y.min() - 0.01, Y.max() + 0.01
+    x_min, x_max = X[:, 0].min() - 0.01, X[:, 0].max() + 0.01
+    y_min, y_max = X[:, 1].min() - 0.01, X[:, 1].max() + 0.01
     grid_x, grid_y = np.mgrid[x_min:x_max:100j, y_min:y_max:100j]
 
-    # Perform IDW interpolation using the cKDTree and griddata functions from scipy
-    interpolated_values = griddata(
-        np.column_stack((X, Y)), Z, (grid_x, grid_y), method="nearest")
+    # Flatten the grid_x and grid_y arrays
+    grid_x = grid_x.flatten()
+    grid_y = grid_y.flatten()
 
-    # Convert the interpolated_values array into a list of polyggon features
+    # Create a KNeighborsRegressor instance
+    knn = KNeighborsRegressor(weights='distance')
+
+    # Fit the model to the sensor data
+    knn.fit(X, Z)
+
+    # Use the predict method to interpolate values for the grid points
+    interpolated_values = knn.predict(np.column_stack((grid_x, grid_y)))
+
+    # Convert the interpolated_values array into a list of polygon features
     features = []
-    for i in range(interpolated_values.shape[0] - 1):
-        for j in range(interpolated_values.shape[1] - 1):
-            polygon = [
-                [grid_x[i, j], grid_y[i, j]],
-                [grid_x[i + 1, j], grid_y[i + 1, j]],
-                [grid_x[i + 1, j + 1], grid_y[i + 1, j + 1]],
-                [grid_x[i, j + 1], grid_y[i, j + 1]],
-                [grid_x[i, j], grid_y[i, j]]
-            ]
-            features.append({
-                "type": "Feature",
-                "geometry": {
-                    "type": "Polygon",
-                    "coordinates": [polygon]
-                },
-                "properties": {
-                    "interpolated_value": interpolated_values[i, j]
-                }
-            })
+    for i in range(interpolated_values.shape[0]):
+        polygon = [
+            [grid_x[i], grid_y[i]],
+            [grid_x[i] + 0.01, grid_y[i]],
+            [grid_x[i] + 0.01, grid_y[i] + 0.01],
+            [grid_x[i], grid_y[i] + 0.01],
+            [grid_x[i], grid_y[i]]
+        ]
+        value = round(interpolated_values[i], 1) if np.isfinite(interpolated_values[i]) else None
+        features.append({
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [polygon]
+            },
+            "properties": {
+                "pm2.5": value
+            }
+        })
 
     # get the center point of the dataset to assist in centering the map
-    center_point = [np.mean(X), np.mean(Y)]
+    center_point = [np.mean(X[:, 0]), np.mean(X[:, 1])]
     
     # also make the geojson object for just the sensor points so those can be returned back too
     
