@@ -155,6 +155,10 @@ def make_interpolated_polygons(sensor_gdf, expanded_search: bool = False):
     X = sensor_gdf[["longitude", "latitude"]].values
     Z = sensor_gdf["pm2.5"].values
 
+    # extract the bounds object from the dataframe to use for setting zoom level
+    bounds = sensor_gdf.total_bounds
+    bounds_obj = [[bounds[1], bounds[0]], [bounds[3], bounds[2]]]
+    
     # Create a grid of points to interpolate the air pollution values to
     x_min, x_max = X[:, 0].min() - 0.01, X[:, 0].max() + 0.01
     y_min, y_max = X[:, 1].min() - 0.01, X[:, 1].max() + 0.01
@@ -209,7 +213,8 @@ def make_interpolated_polygons(sensor_gdf, expanded_search: bool = False):
         "features": features,
         "points": points_features,
         "center_point": center_point,
-        "expanded_search": expanded_search
+        "expanded_search": expanded_search,
+        "bounds": bounds_obj
         
     }
     
