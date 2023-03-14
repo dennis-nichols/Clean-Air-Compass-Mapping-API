@@ -168,8 +168,16 @@ def make_interpolated_polygons(sensor_gdf, expanded_search: bool = False):
     grid_x = grid_x.flatten()
     grid_y = grid_y.flatten()
 
+    # set neighbors
+    
+    if len(Z) >= 5:
+      neighbors = 5
+    
+    else:
+      neighbors = len(Z)
+    
     # Create a KNeighborsRegressor instance
-    knn = KNeighborsRegressor(weights='distance')
+    knn = KNeighborsRegressor(n_neighbors=neighbors, weights='distance')
 
     # Fit the model to the sensor data
     knn.fit(X, Z)
