@@ -10,7 +10,7 @@ The API conducts the following steps:
 - Makes a request to the [LocationIQ API](https://locationiq.com/) and get back a bounding box of lat / lon coordinates
 - Makes a request to the [Purple Air API](https://www2.purpleair.com/) to get back the list of sensors within the bounding box as well as their associated air pollution data
 - Creates a spatial data frame from the sensor API response object using `geopandas`
-- Creates a grid of polygons based on the spatial extent of the collection of sensor points and estimates the PM 2.5 pollution at each grid cell using the inverse distance weighting method (IDW) and the `scikit-learn` library.
+- Creates a grid of polygons based on the spatial extent of the collection of sensor points and estimates the PM 2.5 pollution at each grid cell using the K-nearest neigbors (KNN) regressor method and the `scikit-learn` library.
 - Returns the grid of polygons to the frontend as a GeoJSON object
 
 ## How to run
